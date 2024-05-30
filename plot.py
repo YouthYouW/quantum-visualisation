@@ -20,12 +20,6 @@ def cartesian(ratio,a,x,V0):
     #T = abs(k1-k2)*(k1+k2)*sin(a*k2)/(2*j*k1*k2*cos(a*k2)+(k1**2+k2**2)*sin(a*k2))
     #R = abs(2*j*exp(-j*a*k1)*k1*k2/(2*j*k1*k2*cos(a*k2)+(k1**2+k2**2)*sin(a*k2)))
     A1 = 1
-    #A2, C1 = 2*j*(k1**2-k2**2)*sin(k2*a)/((k1-k2)**2*exp(j*k2*a)-(k1+k2)**2*exp(-j*k2*a)), -4*k1*k2*exp(-j*k1*a)/((k1-k2)**2*exp(j*k2*a)-(k1+k2)**2*exp(-j*k2*a))
-    #B1, B2 = (k1+k2-A2*k1+A2*k2)/(2*k2), (k2+k1+A2*k1+A2*k2)/(2*k2)
-    
-    #D = -k1**2+exp(j*2*a*k2)*k1**2-2*k1*k2-2*exp(2*j*a*k2)*k1*k2-k2**2+exp(2*j*a*k2)*k2**2
-    #A2, C1 = -(-1+exp(2*j*a*k2)*(-k1**2+k2**2))/D, -4*exp(-j*a*k1+j*a*k2)*k1*k2/D
-    #B1, B2 = -2*k1*(k1+k2)/D, 2*exp(2*j*a*k2)*k1*(k1-k2)/D
     
     A2, C1 = (k1**2-k2**2)*sin(a*k2)/(2*j*k1*k2*cos(a*k2)+(k1**2+k2**2)*sin(a*k2)), 2*j*exp(-j*a*k1)*k1*k2/(2*j*k1*k2*cos(a*k2)+(k1**2+k2**2)*sin(k2*a))
     B1, B2 = -2*k1*(k1+k2)/(exp(2*j*a*k2)*(k1-k2)**2-(k1+k2)**2), 2*exp(2*j*a*k2)*k1*(k1-k2)/(exp(2*j*a*k2)*(k1-k2)**2-(k1+k2)**2)
@@ -35,9 +29,7 @@ def cartesian(ratio,a,x,V0):
     psai22 = B2*np.exp(-j*k2*x)
     psai31 = C1*np.exp(j*k1*x)
     psai32 = 0
-    # psai1 = A1*np.cos(k1*x)+A2*np.cos(-k1*x)
-    # psai2 = B1*np.exp(k2*x)+B2*np.exp(-k2*x)
-    # psai3 = C1*np.cos(k3*x)
+    
     if x in x1:
         return psai11, psai12
     elif x in x2:
@@ -91,6 +83,26 @@ def spherical(ratio,a,r,theta,fai,V0,l,m):
     else:
         return psai1
 
+def transmission_matrix(ratio,V0,a):
+    j=1j
+    k1, k2 = k0*np.sqrt(ratio)*np.sqrt(V0), k0*cm.sqrt(1-1/ratio)
+    B,F = (k1-k2)/(k1+k2)*exp(-2j*k2*a), 2*k1/(k1+k2)*exp(-j*k2*a)
+    M = np.array([[F,-B],[0,1]])
+    return M
+
+def multi_car(ratio,a,V):
+    j=1j
+    k1, k2 = k0*np.sqrt(ratio)*np.sqrt(V[0]), k0*cm.sqrt(1-1/ratio)
+    ncar = len(V)
+    M1 = transmission_matrix(ratio,V[0],a)
+    F1 = 2*j*exp(-j*a*k1)*k1*k2/(2*j*k1*k2*cos(a*k2)+(k1**2+k2**2)*sin(k2*a))
+    M_total = np.linalg.matrix_power(M1,ncar)
+
+    F_total = M_total[0,0]
+    R = []
+    for i in range(ncar):
+        R.append(M1[0,1]*(F_total)**(i+1)/(M1[0,0])**(i+1))
+    return R
 
 #plot
 def car_plot(V0,ratio,a):
@@ -232,7 +244,9 @@ def cylind_plot(V0,ratio,a,h,m):
 
     fig = plt.figure(figsize=(12, 8))  # 设置图形大小
     ax = fig.add_subplot(111, projection='3d')
-
+    plt.rcParams['figure.figsize'] = (8.0,6.0)
+    plt.rcParams['font.sans-serif'] = ['SimHei']
+    plt.rcParams['axes.unicode_minus'] = False
     # 绘制散点图
     values = []
     absvalues = []
@@ -277,11 +291,11 @@ def cylind_plot(V0,ratio,a,h,m):
     m1 = plt.cm.ScalarMappable(norm=norm1, cmap='coolwarm')
     cb1 = plt.colorbar(m1, ax=ax, shrink=0.5, pad=0.1, location="left")  # 添加第一个颜色条
     cb1.set_ticks([min(values), vmid])  # 设置刻度
-    cb1.set_ticklabels(['0', str(vmid)])  # 设置刻度标签
+    cb1.set_ticklabels(['0', str(vmid/(max(values)+min(values)))])  # 设置刻度标签
     m2 = plt.cm.ScalarMappable(norm=norm2, cmap='viridis')
     cb2 = plt.colorbar(m2, ax=ax, shrink=0.5, pad=0.1, location="right")  # 添加第二个颜色条
     cb2.set_ticks([vmid, max(values)])  # 设置刻度
-    cb2.set_ticklabels([str(vmid), '1'])  # 设置刻度标签
+    cb2.set_ticklabels([str(vmid/(max(values)+min(values))), '1'])  # 设置刻度标签
     plt.title('柱坐标系下波函数模方分布')
 
     return fig
@@ -313,7 +327,9 @@ def spher_plot(V0,ratio,a,m,l):
 
     fig = plt.figure(figsize=(12,8))
     ax = fig.add_subplot(111,projection='3d')
-
+    plt.rcParams['figure.figsize'] = (8.0,6.0)
+    plt.rcParams['font.sans-serif'] = ['SimHei']
+    plt.rcParams['axes.unicode_minus'] = False
     values = []
     absvalues = []
     for i in x:
@@ -363,6 +379,25 @@ def spher_plot(V0,ratio,a,m,l):
     cb2.set_ticklabels([str(vmid/(max(values)+min(values))),'1'])
     plt.title('球坐标系下波函数模方分布')
     return fig
+
+def multicar_plot(V,ratio,a):
+    fig = plt.figure()
+    ax1 = fig.add_subplot(1,1,1)
+    plt.rcParams['figure.figsize'] = (8.0,6.0)
+    plt.rcParams['font.sans-serif'] = ['SimHei']
+    plt.rcParams['axes.unicode_minus'] = False
+
+    xmin, xmax = 0, dc ##############  方便计算
+    ncar = len(V)
+    x1 = np.linspace(-dc,xmin,1000)
+    x2 = np.linspace(xmin,xmax,1000)
+    x3 = np.linspace(xmax+dc*(ncar-1),xmax+dc*ncar,1000)
+    x = [x1,x2]
+    for i in range(ncar):
+        xi = np.linspace(xmax+dc*(i),xmax+dc*(i+1),1000)
+        x.append(xi)
+
+    
 
 #animation
 def time_factor(V0,ratio,t):
@@ -434,3 +469,4 @@ def ani_car_plot(V0,ratio,a):
     plt.title('一维情况下波函数幅值分布 E/V0={}'.format(ratio))
     ani = FuncAnimation(fig,update,init_func=init,frames=2000,interval=50,blit=True)
     return ani
+
