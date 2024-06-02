@@ -70,14 +70,32 @@ def Y(m,l,theta,fai):
     Y = lpmv(m,l,cos(theta))*exp(j*m*fai)
     return Y
 
+sj = spherical_jn
+sy = spherical_yn
+def sh1(l,x):
+    j=1j
+    return sj(l,x)+j*sy(l,x)
+def sh2(l,x):
+    j=1j
+    return sj(1,x)-j*sy(l,x)
+def dsj(l,x):
+    return sj(l,x,derivative=True)
+def dsy(l,x):
+    return sy(l,x,derivative=True)
+def dsh1(l,x):
+    j=1j
+    return dsj(l,x)+j*dsy(l,x)
+def dsh2(l,x):
+    j=1j
+    return dsj(l,x)-j*dsy(l,x)
 def spherical(ratio,a,r,theta,fai,V0,l,m):
     rmax = a
     r2 = np.linspace(0,rmax,100)
     j=1j
     k1, k2 = k1, k2 = k0*np.sqrt(ratio)*np.sqrt(V0), k0*cm.sqrt(1-1/ratio)
-    C, D = -(-k2*hankel2(l,a*k1)*jvp(l,a*k2)+k1*jv(l,a*k2)*h2vp(l,a*k1))/(k1*(hankel2(l,a*k1)*h1vp(l,a*k1)-hankel1(l,a*k1)*h2vp(l,a*k1))), (k2*hankel1(l,a*k1)*jvp(l,a*k2)-k1*jv(l,a*k2)*h1vp(l,a*k1))/(k1*(hankel2(l,a*k1)*h1vp(l,a*k1)-hankel1(l,a*k1)*h2vp(l,a*k1)))
-    psai1 = (C*hankel1(l,k1*r)+D*hankel2(l,k1*r))*Y(m,l,theta,fai)
-    psai2 = 1*jv(l,k2*r)*Y(m,l,theta,fai)
+    A,C = k1*(dsh2(l,a*k1)*sh1(l,a*k1)-dsh1(l,a*k1)*sh2(l,a*k1))/(k1*dsh2(l,a*k1)*sj(l,a*k2)-k2*dsj(l,a*k2)*sh2(l,a*k1)), (-k1*dsh1(l,a*k1)*sj(l,a*k2)+k2*dsj(l,a*k2)*sh1(l,a*k1))/(k1*dsh2(l,a*k1)*sj(l,a*k2)-k2*dsj(l,a*k2)*sh2(l,a*k1))
+    psai1 = (1*sh1(l,k1*r)+C*sh2(l,k1*r))*Y(m,l,theta,fai)
+    psai2 = A*sj(l,k2*r)*Y(m,l,theta,fai)
     if r in r2:
         return psai2
     else:
@@ -144,22 +162,22 @@ def polar_plot(V0,ratio,a,m):
     V0, ratio, a, m =float(V0), float(ratio), float(a), float(m)
     rmin, rmax, faimax = 0, a, 2*pi
 
-    Z = np.zeros((400,400))
-    XX = np.linspace(-rmax-dc,rmax+dc,400)
+    Z = np.zeros((200,200))
+    XX = np.linspace(-rmax-dc,rmax+dc,200)
     x = list(XX)
-    YY = np.linspace(-rmax-dc,rmax+dc,400)
+    YY = np.linspace(-rmax-dc,rmax+dc,200)
     y = list(YY)
     for i in range(len(x)):
         if x[i] > 0:
             for j in range(len(y)):
                 fai = arctan(y[j]/x[i])
                 r = sqrt(x[i]**2+y[j]**2)
-                Z[j][i] = polar(ratio,a,r,fai,V0,m).real
+                Z[j][i] = polar(ratio,a,r,fai,V0,m)
         elif x[i]<0:
             for j in range(len(y)):
-                fai = -arctan(y[j]/x[i])
+                fai = arctan(y[j]/x[i])
                 r = sqrt(x[i]**2+y[j]**2)
-                Z[j][i] = polar(ratio,a,r,fai,V0,m).real 
+                Z[j][i] = polar(ratio,a,r,fai,V0,m) 
         else:
             for j in range(len(y)):
                 if y[j] >= 0:
@@ -167,7 +185,7 @@ def polar_plot(V0,ratio,a,m):
                 else:
                     fai = -pi/2
                 r = sqrt(x[i]**2+y[j]**2)
-                Z[j][i] = polar(ratio,a,r,fai,V0,m).real
+                Z[j][i] = polar(ratio,a,r,fai,V0,m)
     X,Y = np.meshgrid(XX,YY)
     # 设置中文字体
     plt.rcParams['font.sans-serif'] = ['SimHei']
@@ -187,12 +205,13 @@ def polar_plot(V0,ratio,a,m):
     yp = np.outer(rmax * np.sin(u), np.ones(len(h)))
     zp = np.outer(np.ones(len(u)), h)
 
+    norm1 = Normalize(-1,1)
     # 使用更柔和的颜色
     ax1.plot_surface(xp, yp, zp, color='black', alpha=0.2)  # 调整圆柱颜色和透明度
     circle = Circle((0, 0), rmax, color='black', alpha=0.2)
     ax1.add_patch(circle)
     art3d.pathpatch_2d_to_3d(circle, z=V0, zdir="z")
-    ax1.plot_surface(X, Y, Z, cmap='coolwarm')  # 更改 colormap
+    ax1.plot_surface(X, Y, Z, cmap='coolwarm',norm=norm1)  # 更改 colormap
     ax1.view_init(elev=37, azim=41)  # 仰角 37 度，方位角 41 度
     ax1.set_zlim(-1, 1)
     ax1.set_xlabel('X')
@@ -205,7 +224,7 @@ def polar_plot(V0,ratio,a,m):
     circle = Circle((0,0), rmax, color='black', alpha=0.2)
     ax2.add_patch(circle)
     art3d.pathpatch_2d_to_3d(circle, z=V0, zdir="z")
-    ax2.plot_surface(X, Y, Z, cmap='coolwarm')  # 更改 colormap
+    ax2.plot_surface(X, Y, Z, cmap='coolwarm',norm=norm1)  # 更改 colormap
     ax2.view_init(elev=90, azim=0)  # 设置俯视视角
     ax2.set_zlim(-1, 1)
     ax2.set_xlabel('X')
@@ -224,7 +243,7 @@ def cylind_color(ratio,a,z,x,y,V0,m):
     if x > 0:
         fai = arctan(y/x)
     elif x<0:
-        fai = -arctan(y/x)
+        fai = arctan(y/x)
     else:
         fai = pi/2
     psai1, psai2 = cylindrical(ratio,a,z,r,fai,V0,m)
@@ -305,7 +324,7 @@ def spher_color(ratio,a,z,x,y,V0,l,m):
     if x> 0:
         fai = arctan(y/x)
     elif x<0:
-        fai = -arctan(y/x)
+        fai = arctan(y/x)
     else:
         fai = pi/2
     if x==0 and y==0:
@@ -350,7 +369,7 @@ def spher_plot(V0,ratio,a,m,l):
     for i in x:
         for j in y:
             for k in z:
-                alpha = 0.5+0.5*abs(spher_color(ratio,a,k,i,j,V0,l,m))/max(absvalues)
+                alpha = 0.5 +0.5*abs(spher_color(ratio,a,k,i,j,V0,l,m))/max(absvalues)
                 if spher_color(ratio,a,k,i,j,V0,l,m)<vmid:
                     ax.scatter(i,j,k,c=spher_color(ratio,a,k,i,j,V0,l,m),cmap='coolwarm',norm=norm1,alpha=alpha)
                 else:

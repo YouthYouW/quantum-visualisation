@@ -29,9 +29,11 @@ def update():
     entry4_in_frame1.grid_forget()
     label5_in_frame2.pack_forget()
     label6_in_frame1.grid_forget()
+    label6_in_frame2.pack_forget()
     entry5_in_frame1.grid_forget()
     entry6_in_frame1.grid_forget()
     label7_in_frame1.grid_forget()
+    label7_in_frame2.pack_forget()
     labelwithbutton5_in_frame1.grid_forget()
     button5_in_frame1.grid_forget()
     animation = False
@@ -56,9 +58,10 @@ def chosebutton2():
     label2_in_frame2.pack()
     label3_in_frame2.pack()
     label4_in_frame2.pack()
-    label5_in_frame1.config(text='请输入m(贝塞尔函数阶数)')
+    label5_in_frame1.config(text='请输入l（角动量量子数）')
     label5_in_frame1.grid(row=8,column=6)
     entry4_in_frame1.grid(row=9,column=6,columnspan=3)
+    label5_in_frame2.config(text='请输入l')
     label5_in_frame2.pack()
 
 def chosebutton3():
@@ -69,9 +72,10 @@ def chosebutton3():
     label2_in_frame2.pack()
     label3_in_frame2.pack()
     label4_in_frame2.pack()
-    label5_in_frame1.config(text='请输入m(贝塞尔函数阶数)')
+    label5_in_frame1.config(text='请输入l（角动量量子数）')
     label5_in_frame1.grid(row=8,column=6)
     entry4_in_frame1.grid(row=9,column=6,columnspan=3)
+    label5_in_frame2.config(text='请输入l')
     label5_in_frame2.pack()
     label6_in_frame1.grid(row=10,column=6)
     entry5_in_frame1.grid(row=11,column=6,columnspan=3)
@@ -88,6 +92,7 @@ def chosebutton4():
     label5_in_frame1.config(text='请输入m（磁量子数）')
     label5_in_frame1.grid(row=8,column=6)
     entry4_in_frame1.grid(row=9,column=6,columnspan=3)
+    label5_in_frame2.config(text='请输入m')
     label5_in_frame2.pack()
     label7_in_frame1.grid(row=10,column=6)
     entry6_in_frame1.grid(row=11,column=6,columnspan=3)
@@ -108,7 +113,7 @@ def generatebutton8():
     V0 = entry3_in_frame1.get()
     label4_in_frame2.config(text='您输入的V0为：{}'.format(V0))
     m = entry4_in_frame1.get()
-    label5_in_frame2.config(text='您输入的m为：{}'.format (m))
+    
     h = entry5_in_frame1.get()
     label6_in_frame2.config(text='您输入的h为：{}'.format(h))
     l = entry6_in_frame1.get()
@@ -125,11 +130,19 @@ def generatebutton8():
                 print('Delete successfully')
             animation_box(V0,ratio,a)
     elif coordinate == 'polar':
+        label5_in_frame2.config(text='您输入的l为：{}'.format (m))
         fig = polar_plot(V0,ratio,a,m)
     elif coordinate == 'cylindrical':
+        label5_in_frame2.config(text='您输入的l为：{}'.format (m))
         fig = cylind_plot(V0,ratio,a,h,m)
     elif coordinate == 'spherical':
-        fig = spher_plot(V0,ratio,a,m,l)
+        label5_in_frame2.config(text='您输入的m为：{}'.format (m))
+        m,l = float(m),float(l)
+        if m>l:
+            return messagebox2()
+            fig = None
+        else:
+            fig = spher_plot(V0,ratio,a,m,l)
     else:
         return messagebox1()
     
@@ -166,6 +179,8 @@ def animation_box(V0,ratio,a):
 #Dialog Box
 def messagebox1():
     messagebox.showinfo('Note!','Warning! You have to choose a coordinate before generating!')
+def messagebox2():
+    messagebox.showinfo('m>l')
 
 #Create Frames
 frame1 = tk.Frame(root,relief='ridge',width=400)#frame1用于输入
