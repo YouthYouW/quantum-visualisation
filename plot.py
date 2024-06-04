@@ -1,3 +1,4 @@
+
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.patches import Circle
@@ -7,14 +8,31 @@ import numpy as np
 import cmath as cm
 from numpy import sin,cos,exp,sinh,cosh,pi,arctan,sqrt
 from scipy.special import jv, jvp, hankel1, h1vp, hankel2, h2vp,lpmv,spherical_jn,spherical_yn
-#直角坐标系
+# 定义全局波数
 k0 = 50
+# 定义边界宽度
 dc = 0.3
+
+# 定义直角坐标系下波函数计算函数
 def cartesian(ratio,a,x,V0):
+    """
+    计算一维势垒/势阱中直角坐标系下的波函数
+
+    参数:
+        ratio (float): E/V0，粒子能量与势能之比
+        a (float): 势垒/势阱宽度
+        x (float): x坐标
+        V0 (float): 势垒/势阱高度
+
+    返回值:
+        tuple: 包含两个元素的元组，分别为入射波和反射波的幅值
+    """
     xmin, xmax = 0, a
-    x1 = np.linspace(-dc-xmin,xmin,100)
-    x2 = np.linspace(xmin,xmax,100)
+    # 定义不同区域的x坐标
+    x1 = np.linspace(-dc-xmin,xmin,1000)
+    x2 = np.linspace(xmin,xmax,1000)
     j=1j
+    # 根据能量与势能的比值计算波函数
     if ratio == 1:
         k1 = k0*sqrt(V0)
         A1 = 1
@@ -44,8 +62,23 @@ def cartesian(ratio,a,x,V0):
         return psai21, psai22
     else:
         return psai31, psai32
-    
+
+# 定义极坐标系下波函数计算函数
 def polar(ratio,a,r,fai,V0,m):
+    """
+    计算二维圆柱势垒/势阱中极坐标系下的波函数
+
+    参数:
+        ratio (float): E/V0，粒子能量与势能之比
+        a (float): 圆柱势垒/势阱半径
+        r (float): 极径
+        fai (float): 极角
+        V0 (float): 势垒/势阱高度
+        m (int): 角量子数
+
+    返回值:
+        complex: 波函数幅值
+    """
     rmax = a
     r2 = np.linspace(0,rmax,100)
     j=1j
@@ -69,7 +102,23 @@ def polar(ratio,a,r,fai,V0,m):
     else:
         return psai1
     
+# 定义柱坐标系下波函数计算函数
 def cylindrical(ratio,a,h,r,fai,V0,m):
+    """
+    计算三维圆柱势垒/势阱中柱坐标系下的波函数
+
+    参数:
+        ratio (float): E/V0，粒子能量与势能之比
+        a (float): 圆柱势垒/势阱半径
+        h (float): 圆柱势垒/势阱高度
+        r (float): 极径
+        fai (float): 极角
+        V0 (float): 势垒/势阱高度
+        m (int): 角量子数
+
+    返回值:
+        tuple: 包含两个元素的元组，分别为入射波和反射波的幅值
+    """
     psair = polar(ratio,a,r,fai,V0,m)
     psaiz1, psaiz2 = cartesian(ratio,a,h,V0)
     
@@ -77,9 +126,28 @@ def cylindrical(ratio,a,h,r,fai,V0,m):
     
     return p1, p2
 
+# 定义球坐标系下波函数计算函数
 def spherical(ratio,a,r,theta,fai,V0,l,m):
+    """
+    计算三维球形势垒/势阱中球坐标系下的波函数
+
+    参数:
+        ratio (float): E/V0，粒子能量与势能之比
+        a (float): 球形势垒/势阱半径
+        r (float): 极径
+        theta (float): 极角
+        fai (float): 方位角
+        V0 (float): 势垒/势阱高度
+        l (int): 角量子数
+        m (int): 磁量子数
+
+    返回值:
+        complex: 波函数幅值
+    """
     rmax = a
     r2 = np.linspace(0,rmax,100)
+    j=1j
+    # 定义球谐函数
     def Y(m,l,theta,fai):
         j=1j
         Y = lpmv(m,l,cos(theta))*exp(j*m*fai)
@@ -123,14 +191,38 @@ def spherical(ratio,a,r,theta,fai,V0,l,m):
     else:
         return psai1
 
+# 定义透射矩阵计算函数
 def transmission_matrix(ratio,V0,a):
+    """
+    计算一维势垒/势阱的透射矩阵
+
+    参数:
+        ratio (float): E/V0，粒子能量与势能之比
+        V0 (float): 势垒/势阱高度
+        a (float): 势垒/势阱宽度
+
+    返回值:
+        ndarray: 透射矩阵
+    """
     j=1j
     k1, k2 = k0*np.sqrt(ratio)*np.sqrt(V0), k0*cm.sqrt(1-1/ratio)
     B,F = (k1-k2)/(k1+k2)*exp(-2j*k2*a), 2*k1/(k1+k2)*exp(-j*k2*a)
     M = np.array([[F,-B],[0,1]])
     return M
 
+# 定义多势垒/势阱透射系数计算函数
 def multi_car(ratio,a,V):
+    """
+    计算多个一维势垒/势阱的透射系数
+
+    参数:
+        ratio (float): E/V0，粒子能量与势能之比
+        a (float): 势垒/势阱宽度
+        V (list): 势垒/势阱高度列表
+
+    返回值:
+        list: 每个势垒/势阱的透射系数列表
+    """
     j=1j
     k1, k2 = k0*np.sqrt(ratio)*np.sqrt(V[0]), k0*cm.sqrt(1-1/ratio)
     ncar = len(V)
@@ -144,8 +236,19 @@ def multi_car(ratio,a,V):
         R.append(M1[0,1]*(F_total)**(i+1)/(M1[0,0])**(i+1))
     return R
 
-#plot
+# 定义一维波函数绘图函数
 def car_plot(V0,ratio,a):
+    """
+    绘制一维情况下波函数幅值分布图
+
+    参数:
+        V0 (float): 势垒/势阱高度
+        ratio (float): E/V0，粒子能量与势能之比
+        a (float): 势垒/势阱宽度
+
+    返回值:
+        figure: matplotlib.figure.Figure 对象
+    """
     V0, ratio, a =float(V0), float(ratio), float(a)
     xmin, xmax = 0, a
     x = np.linspace(-xmin-dc,xmax+dc, 300)
@@ -179,7 +282,20 @@ def car_plot(V0,ratio,a):
     plt.title('一维情况下波函数幅值分布')
     return fig
 
+# 定义二维极坐标波函数绘图函数
 def polar_plot(V0,ratio,a,m):
+    """
+    绘制二维圆柱势垒/势阱中波函数幅值分布图
+
+    参数:
+        V0 (float): 势垒/势阱高度
+        ratio (float): E/V0，粒子能量与势能之比
+        a (float): 圆柱势垒/势阱半径
+        m (int): 角量子数
+
+    返回值:
+        figure: matplotlib.figure.Figure 对象
+    """
     #V0, ratio, a, m =1,0.2,0.2,1
     V0, ratio, a, m =float(V0), float(ratio), float(a), float(m)
     rmin, rmax, faimax = 0, a, 2*pi
@@ -265,7 +381,25 @@ def polar_plot(V0,ratio,a,m):
     plt.title('波函数幅值分布')
     return fig
 
+# 定义柱坐标系下波函数颜色计算函数
 def cylind_color(ratio, a, z, x, y, V0, m, slice_axis=None, slice_value=None):
+    """
+    计算三维圆柱势垒/势阱中柱坐标系下指定点的波函数模方值，用于绘制彩色图
+
+    参数:
+        ratio (float): E/V0，粒子能量与势能之比
+        a (float): 圆柱势垒/势阱半径
+        z (float): Z坐标
+        x (float): X坐标
+        y (float): Y坐标
+        V0 (float): 势垒/势阱高度
+        m (int): 角量子数
+        slice_axis (str, optional): 切片轴，可选值为 'z' 或 'y'，默认为 None
+        slice_value (float, optional): 切片值，默认为 None
+
+    返回值:
+        float: 波函数模方值，如果需要切片且该点不在切片上则返回 NaN
+    """
     r = sqrt(x**2 + y**2)
     if x > 0:
         if y >= 0:
@@ -296,7 +430,21 @@ def cylind_color(ratio, a, z, x, y, V0, m, slice_axis=None, slice_value=None):
 
     return Normpsai
 
+# 定义三维柱坐标波函数绘图函数
 def cylind_plot(V0,ratio,a,h,m):
+    """
+    绘制三维圆柱势垒/势阱中波函数模方分布图
+
+    参数:
+        V0 (float): 势垒/势阱高度
+        ratio (float): E/V0，粒子能量与势能之比
+        a (float): 圆柱势垒/势阱半径
+        h (float): 圆柱势垒/势阱高度
+        m (int): 角量子数
+
+    返回值:
+        figure: matplotlib.figure.Figure 对象
+    """
     #V0, ratio, a, h, m = 1, 0.2, 0.2, 1, 1
     V0, ratio, a, h, m = float(V0), float(ratio), float(a), float(h), float(m)
 
@@ -393,7 +541,27 @@ def cylind_plot(V0,ratio,a,h,m):
 
     return fig
 
+# 定义球坐标系下波函数颜色计算函数
 def spher_color(ratio, a, z, x, y, V0, l, m, slice_axis=None, slice_value=None):
+    """
+    计算三维球形势垒/势阱中给定点的波函数模方值，用于绘制彩色图
+
+    参数:
+        ratio (float): E/V0，粒子能量与势能之比
+        a (float): 球形势垒/势阱半径
+        z (float): z坐标
+        x (float): x坐标
+        y (float): y坐标
+        V0 (float): 势垒/势阱高度
+        l (int): 角量子数
+        m (int): 磁量子数
+        slice_axis (str, optional): 切片轴，可选项为 "z" 或 "y"，默认为 None
+        slice_value (float, optional): 切片值，如果指定了 slice_axis，则该参数表示切片的位置，默认为 None
+
+    返回值:
+        float: 波函数模方值，如果需要切片且该点不在切片上，则返回 np.nan
+    """
+    # 计算球坐标
     r = sqrt(x**2 + y**2 + z**2)
     if x > 0:
         fai = arctan(y / x)
@@ -408,6 +576,8 @@ def spher_color(ratio, a, z, x, y, V0, l, m, slice_axis=None, slice_value=None):
         theta = pi / 2
     else:
         theta = arctan(sqrt(x**2 + y**2) / z)
+    
+    # 计算波函数
     psai = spherical(ratio, a, r, theta, fai, V0, l, m)
     normpsai = (abs(psai))**2
 
@@ -422,6 +592,19 @@ def spher_color(ratio, a, z, x, y, V0, l, m, slice_axis=None, slice_value=None):
     return normpsai
 
 def spher_plot(V0,ratio,a,m,l):
+    """
+    绘制三维球形势垒/势阱中波函数模方分布图
+
+    参数:
+        V0 (float): 势垒/势阱高度
+        ratio (float): E/V0，粒子能量与势能之比
+        a (float): 球形势垒/势阱半径
+        m (int): 磁量子数
+        l (int): 角量子数
+
+    返回值:
+        figure: matplotlib.figure.Figure 对象
+    """
     #V0, ratio, a, m, l =1,0.2,0.2,1,1
     V0, ratio, a, m, l =float(V0), float(ratio), float(a), float(m), float(l)
     rmax = a
@@ -516,6 +699,7 @@ def spher_plot(V0,ratio,a,m,l):
     m2 = plt.cm.ScalarMappable(norm=norm2, cmap='viridis')  # 使用 viridis colormap
     cb2 = plt.colorbar(m2, ax=ax, shrink=0.5, pad=0.1, location="right")  # 添加第二个颜色条
     cb2.set_ticks([vmid,max(values)])
+    cb2.set_ticks([vmid,max(values)])
     cb2.set_ticklabels([str(vmid/(max(values)+min(values))),'1'])
     
     return fig
@@ -554,8 +738,6 @@ def ani_car_plot(V0,ratio,a):
     x1 = np.linspace(-dc,xmin,1000)
     x2 = np.linspace(xmin,xmax,1000)
     x3 = np.linspace(xmax,xmax+dc,1000)
-
-
 
     y11, y12 = cartesian(ratio,a,x1,V0)
     y21, y22 = cartesian(ratio,a,x2,V0)
@@ -609,4 +791,4 @@ def ani_car_plot(V0,ratio,a):
     plt.title('一维情况下波函数幅值分布 E/V0={}'.format(ratio))
     ani = FuncAnimation(fig,update,init_func=init,frames=2000,interval=50,blit=True)
     return ani
-
+    
