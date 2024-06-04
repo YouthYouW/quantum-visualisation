@@ -15,7 +15,7 @@ import os
 from PIL import Image, ImageTk
 #Create main window
 root = tk.Tk()
-root.geometry('1200x500+900+50')
+root.geometry('1500x500+900+50')
 root.title('势垒贯穿和隧道效应')
 
 #Defining of Functions
@@ -58,10 +58,10 @@ def chosebutton2():
     label2_in_frame2.pack()
     label3_in_frame2.pack()
     label4_in_frame2.pack()
-    label5_in_frame1.config(text='请输入l（角动量量子数）')
+    label5_in_frame1.config(text='请输入m（磁量子数）')
     label5_in_frame1.grid(row=8,column=6)
     entry4_in_frame1.grid(row=9,column=6,columnspan=3)
-    label5_in_frame2.config(text='请输入l')
+    label5_in_frame2.config(text='请输入m')
     label5_in_frame2.pack()
 
 def chosebutton3():
@@ -72,10 +72,10 @@ def chosebutton3():
     label2_in_frame2.pack()
     label3_in_frame2.pack()
     label4_in_frame2.pack()
-    label5_in_frame1.config(text='请输入l（角动量量子数）')
+    label5_in_frame1.config(text='请输入m（磁量子数）')
     label5_in_frame1.grid(row=8,column=6)
     entry4_in_frame1.grid(row=9,column=6,columnspan=3)
-    label5_in_frame2.config(text='请输入l')
+    label5_in_frame2.config(text='请输入m')
     label5_in_frame2.pack()
     label6_in_frame1.grid(row=10,column=6)
     entry5_in_frame1.grid(row=11,column=6,columnspan=3)
@@ -130,10 +130,10 @@ def generatebutton8():
                 print('Delete successfully')
             animation_box(V0,ratio,a)
     elif coordinate == 'polar':
-        label5_in_frame2.config(text='您输入的l为：{}'.format (m))
+        label5_in_frame2.config(text='您输入的m为：{}'.format (m))
         fig = polar_plot(V0,ratio,a,m)
     elif coordinate == 'cylindrical':
-        label5_in_frame2.config(text='您输入的l为：{}'.format (m))
+        label5_in_frame2.config(text='您输入的m为：{}'.format (m))
         fig = cylind_plot(V0,ratio,a,h,m)
     elif coordinate == 'spherical':
         label5_in_frame2.config(text='您输入的m为：{}'.format (m))

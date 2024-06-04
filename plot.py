@@ -8,28 +8,36 @@ import cmath as cm
 from numpy import sin,cos,exp,sinh,cosh,pi,arctan,sqrt
 from scipy.special import jv, jvp, hankel1, h1vp, hankel2, h2vp,lpmv,spherical_jn,spherical_yn
 #直角坐标系
-k0=50
+k0 = 50
 dc = 0.3
 def cartesian(ratio,a,x,V0):
     xmin, xmax = 0, a
     x1 = np.linspace(-dc-xmin,xmin,1000)
     x2 = np.linspace(xmin,xmax,1000)
-    x3 = np.linspace(xmax,xmax+dc,1000)
     j=1j
-    k1, k2 = k0*np.sqrt(ratio)*np.sqrt(V0), k0*cm.sqrt(1-1/ratio)
-    #T = abs(k1-k2)*(k1+k2)*sin(a*k2)/(2*j*k1*k2*cos(a*k2)+(k1**2+k2**2)*sin(a*k2))
-    #R = abs(2*j*exp(-j*a*k1)*k1*k2/(2*j*k1*k2*cos(a*k2)+(k1**2+k2**2)*sin(a*k2)))
-    A1 = 1
-    
-    A2, C1 = (k1**2-k2**2)*sin(a*k2)/(2*j*k1*k2*cos(a*k2)+(k1**2+k2**2)*sin(a*k2)), 2*j*exp(-j*a*k1)*k1*k2/(2*j*k1*k2*cos(a*k2)+(k1**2+k2**2)*sin(k2*a))
-    B1, B2 = -2*k1*(k1+k2)/(exp(2*j*a*k2)*(k1-k2)**2-(k1+k2)**2), 2*exp(2*j*a*k2)*k1*(k1-k2)/(exp(2*j*a*k2)*(k1-k2)**2-(k1+k2)**2)
-    psai11 = A1*np.exp(j*k1*x)
-    psai12 = A2*np.exp(-j*k1*x)
-    psai21 = B1*np.exp(j*k2*x)
-    psai22 = B2*np.exp(-j*k2*x)
-    psai31 = C1*np.exp(j*k1*x)
-    psai32 = 0
-    
+    if ratio == 1:
+        k1 = k0*sqrt(V0)
+        A1 = 1
+        A2, C1 = 1+2/(-1+j+a*k1), 2j*exp(-j*a*k1)/(-1+j+a*k1)
+        B1, B2 = -2*k1/(-1+j+a*k1), 2+2/(-1+j+a*k1)
+        psai11 = A1*exp(j*k1*x)
+        psai12 = A2*exp(-j*k1*x)
+        psai21 = 0.5*(B1*x+B2)
+        psai22 = 0.5*(B1*x+B2)
+        psai31 = C1*exp(j*k1*x)
+        psai32 = 0
+    else:
+        k1, k2 = k0*np.sqrt(ratio)*np.sqrt(V0), k0*cm.sqrt(1-1/ratio)
+        A1 = 1
+        A2, C1 = (k1**2-k2**2)*sin(a*k2)/(2*j*k1*k2*cos(a*k2)+(k1**2+k2**2)*sin(a*k2)), 2*j*exp(-j*a*k1)*k1*k2/(2*j*k1*k2*cos(a*k2)+(k1**2+k2**2)*sin(k2*a))
+        B1, B2 = -2*k1*(k1+k2)/(exp(2*j*a*k2)*(k1-k2)**2-(k1+k2)**2), 2*exp(2*j*a*k2)*k1*(k1-k2)/(exp(2*j*a*k2)*(k1-k2)**2-(k1+k2)**2)
+        psai11 = A1*np.exp(j*k1*x)
+        psai12 = A2*np.exp(-j*k1*x)
+        psai21 = B1*np.exp(j*k2*x)
+        psai22 = B2*np.exp(-j*k2*x)
+        psai31 = C1*np.exp(j*k1*x)
+        psai32 = 0
+
     if x in x1:
         return psai11, psai12
     elif x in x2:
@@ -41,23 +49,27 @@ def polar(ratio,a,r,fai,V0,m):
     rmax = a
     r2 = np.linspace(0,rmax,100)
     j=1j
-    k1, k2 = k0*np.sqrt(ratio)*np.sqrt(V0), k0*cm.sqrt(1-1/ratio)
-    A1, D1 = -(-k1*hankel2(m,a*k1)*h1vp(m,a*k1)+k1*hankel1(m,a*k1)*h2vp(m,a*k1))/(k2*hankel2(m,a*k1)*jvp(m,a*k2)-k1*jv(m,a*k2)*h2vp(m,a*k1)), -(k2*hankel1(m,a*k1)*jvp(m,a*k2)-k1*jv(m,a*k2)*h1vp(m,a*k1))/(k2*hankel2(m,a*k1)*jvp(m,a*k2)-k1*jv(m,a*k2)*h2vp(m,a*k1))
-    psai1 = (1*hankel1(m,k1*r)+D1*hankel2(m,k1*r))*exp(j*m*fai)
-    psai2 = A1*jv(m,k2*r)*exp(j*m*fai)
+    if ratio == 1:
+        k1 = k0*sqrt(V0)
+        if m != 0:
+            A1, D1 = a**(1-m)*k1*(hankel2(m,a*k1)*h1vp(m,a*k1)-hankel1(m,a*k1)*h2vp(m,a*k1))/(m*hankel2(m,a*k1)-a*k1*h2vp(m,a*k1)), (-m*hankel1(m,a*k1)+a*k1*h1vp(m,a*k1))/(m*hankel2(m,a*k1)-a*k1*h2vp(m,a*k1))
+            psai1 = (1*hankel1(m,k1*r)+D1*hankel2(m,k1*r))*exp(j*m*fai)
+            psai2 = A1*r**m
+        else:
+            A1, D1 = (hankel1(0,a*k1)*h2vp(0,a*k1)-hankel2(0,a*k1)*h1vp(0,a*k1))/h2vp(0,a*k1), -h1vp(0,a*k1)/h2vp(0,a*k1)
+            psai1 = (1*hankel1(m,k1*r)+D1*hankel2(m,k1*r))*exp(j*m*fai)
+            psai2 = A1
+    else:
+        k1, k2 = k0*np.sqrt(ratio)*np.sqrt(V0), k0*cm.sqrt(1-1/ratio)
+        A1, D1 = -(-k1*hankel2(m,a*k1)*h1vp(m,a*k1)+k1*hankel1(m,a*k1)*h2vp(m,a*k1))/(k2*hankel2(m,a*k1)*jvp(m,a*k2)-k1*jv(m,a*k2)*h2vp(m,a*k1)), -(k2*hankel1(m,a*k1)*jvp(m,a*k2)-k1*jv(m,a*k2)*h1vp(m,a*k1))/(k2*hankel2(m,a*k1)*jvp(m,a*k2)-k1*jv(m,a*k2)*h2vp(m,a*k1))
+        psai1 = (1*hankel1(m,k1*r)+D1*hankel2(m,k1*r))*exp(j*m*fai)
+        psai2 = A1*jv(m,k2*r)*exp(j*m*fai)
     if r in r2:
         return psai2
     else:
         return psai1
     
 def cylindrical(ratio,a,h,r,fai,V0,m):
-    zmax = h 
-    rmax = a
-    z = np.linspace(-dc,zmax+dc,100)
-    z1 = np.linspace(-dc-zmax,0,100)
-    z2 = np.linspace(0,zmax,100)
-    z3 = np.linspace(zmax,zmax+dc,100)
-    r2 = np.linspace(0,rmax,100)
     psair = polar(ratio,a,r,fai,V0,m)
     psaiz1, psaiz2 = cartesian(ratio,a,h,V0)
     
@@ -65,37 +77,48 @@ def cylindrical(ratio,a,h,r,fai,V0,m):
     
     return p1, p2
 
-def Y(m,l,theta,fai):
-    j=1j
-    Y = lpmv(m,l,cos(theta))*exp(j*m*fai)
-    return Y
 
-sj = spherical_jn
-sy = spherical_yn
-def sh1(l,x):
-    j=1j
-    return sj(l,x)+j*sy(l,x)
-def sh2(l,x):
-    j=1j
-    return sj(1,x)-j*sy(l,x)
-def dsj(l,x):
-    return sj(l,x,derivative=True)
-def dsy(l,x):
-    return sy(l,x,derivative=True)
-def dsh1(l,x):
-    j=1j
-    return dsj(l,x)+j*dsy(l,x)
-def dsh2(l,x):
-    j=1j
-    return dsj(l,x)-j*dsy(l,x)
 def spherical(ratio,a,r,theta,fai,V0,l,m):
     rmax = a
     r2 = np.linspace(0,rmax,100)
-    j=1j
-    k1, k2 = k1, k2 = k0*np.sqrt(ratio)*np.sqrt(V0), k0*cm.sqrt(1-1/ratio)
-    A,C = k1*(dsh2(l,a*k1)*sh1(l,a*k1)-dsh1(l,a*k1)*sh2(l,a*k1))/(k1*dsh2(l,a*k1)*sj(l,a*k2)-k2*dsj(l,a*k2)*sh2(l,a*k1)), (-k1*dsh1(l,a*k1)*sj(l,a*k2)+k2*dsj(l,a*k2)*sh1(l,a*k1))/(k1*dsh2(l,a*k1)*sj(l,a*k2)-k2*dsj(l,a*k2)*sh2(l,a*k1))
-    psai1 = (1*sh1(l,k1*r)+C*sh2(l,k1*r))*Y(m,l,theta,fai)
-    psai2 = A*sj(l,k2*r)*Y(m,l,theta,fai)
+    def Y(m,l,theta,fai):
+        j=1j
+        Y = lpmv(m,l,cos(theta))*exp(j*m*fai)
+        return Y
+    sj = spherical_jn
+    sy = spherical_yn
+    def sh1(l,x):
+        j=1j
+        return sj(l,x)+j*sy(l,x)
+    def sh2(l,x):
+        j=1j
+        return sj(l,x)-j*sy(l,x)
+    def dsj(l,x):
+        return sj(l,x,derivative=True)
+    def dsy(l,x):
+        return sy(l,x,derivative=True)
+    def dsh1(l,x):
+        j=1j
+        return dsj(l,x)+j*dsy(l,x)
+    def dsh2(l,x):
+        j=1j
+        return dsj(l,x)-j*dsy(l,x)
+    
+    if ratio == 1:
+        k1 = k0*sqrt(V0)
+        if l != 0:
+            A1, D1 = a**(1-l)*k1*(sh2(l,a*k1)*dsh1(l,a*k1)-sh1(l,a*k1)*dsh2(l,a*k1))/(l*sh2(l,a*k1)-a*k1*dsh2(l,a*k1)), (-l*sh1(l,a*k1)+a*k1*dsh1(l,a*k1))/(l*sh2(l,a*k1)-a*k1*dsh2(l,a*k1))
+            psai1 = (1*sh1(l,r*k1)+D1*sh2(l,r*k1))*Y(m,l,theta,fai)
+            psai2 = A1*r**l
+        else:
+            A1, D1 = (sh1(0,a*k1)*dsh2(0,a*k1)-sh2(0,a*k1)*dsh1(0,a*k1))/dsh2(0,a*k1), -dsh1(0,a*k1)/dsh2(0,a*k1)
+            psai1 = (1*sh1(0,r*k1)+D1*sh2(0,r*k1))*Y(m,0,theta,fai)
+            psai2 = A1
+    else:
+        k1, k2 = k1, k2 = k0*np.sqrt(ratio)*np.sqrt(V0), k0*cm.sqrt(1-1/ratio)
+        A,C = k1*(dsh2(l,a*k1)*sh1(l,a*k1)-dsh1(l,a*k1)*sh2(l,a*k1))/(k1*dsh2(l,a*k1)*sj(l,a*k2)-k2*dsj(l,a*k2)*sh2(l,a*k1)), (-k1*dsh1(l,a*k1)*sj(l,a*k2)+k2*dsj(l,a*k2)*sh1(l,a*k1))/(k1*dsh2(l,a*k1)*sj(l,a*k2)-k2*dsj(l,a*k2)*sh2(l,a*k1))
+        psai1 = (1*sh1(l,k1*r)+C*sh2(l,k1*r))*Y(m,l,theta,fai)
+        psai2 = A*sj(l,k2*r)*Y(m,l,theta,fai)
     if r in r2:
         return psai2
     else:
@@ -163,6 +186,7 @@ def polar_plot(V0,ratio,a,m):
     rmin, rmax, faimax = 0, a, 2*pi
 
     Z = np.zeros((200,200))
+    Z1 = np.zeros((200,200))
     XX = np.linspace(-rmax-dc,rmax+dc,200)
     x = list(XX)
     YY = np.linspace(-rmax-dc,rmax+dc,200)
@@ -173,11 +197,13 @@ def polar_plot(V0,ratio,a,m):
                 fai = arctan(y[j]/x[i])
                 r = sqrt(x[i]**2+y[j]**2)
                 Z[j][i] = polar(ratio,a,r,fai,V0,m)
+                Z1[j][i] = (abs(polar(ratio,a,r,fai,V0,m)))**2
         elif x[i]<0:
             for j in range(len(y)):
-                fai = arctan(y[j]/x[i])
+                fai = arctan(y[j]/x[i]) + pi
                 r = sqrt(x[i]**2+y[j]**2)
                 Z[j][i] = polar(ratio,a,r,fai,V0,m) 
+                Z1[j][i] = (abs(polar(ratio,a,r,fai,V0,m)))**2
         else:
             for j in range(len(y)):
                 if y[j] >= 0:
@@ -186,6 +212,7 @@ def polar_plot(V0,ratio,a,m):
                     fai = -pi/2
                 r = sqrt(x[i]**2+y[j]**2)
                 Z[j][i] = polar(ratio,a,r,fai,V0,m)
+                Z1[j][i] = (abs(polar(ratio,a,r,fai,V0,m)))**2
     X,Y = np.meshgrid(XX,YY)
     # 设置中文字体
     plt.rcParams['font.sans-serif'] = ['SimHei']
@@ -195,10 +222,10 @@ def polar_plot(V0,ratio,a,m):
     fig = plt.figure(figsize=(10, 5))  # 调整图形大小
 
     # 使用 gridspec_kw 自定义子图布局
-    gs = fig.add_gridspec(1, 2, width_ratios=[2, 1.2])  # 调整比例
+    gs = fig.add_gridspec(1, 2, width_ratios=[1,1])  # 调整比例
 
     # 默认视角
-    ax1 = fig.add_subplot(gs[0], projection='3d')  # 占据两列
+    ax1 = fig.add_subplot(gs[0])  # 占据两列
     u = np.linspace(0, 2 * np.pi, 50)
     h = np.linspace(0, V0, 20)
     xp = np.outer(rmax * np.cos(u), np.ones(len(h)))
@@ -206,17 +233,18 @@ def polar_plot(V0,ratio,a,m):
     zp = np.outer(np.ones(len(u)), h)
 
     norm1 = Normalize(-1,1)
-    # 使用更柔和的颜色
-    ax1.plot_surface(xp, yp, zp, color='black', alpha=0.2)  # 调整圆柱颜色和透明度
-    circle = Circle((0, 0), rmax, color='black', alpha=0.2)
+    # 使用 pcolormesh 绘制二维彩色图
+    im = ax1.pcolormesh(X, Y, Z1, cmap='coolwarm', norm=norm1)
+
+    # 绘制圆形边界
+    circle = Circle((0, 0), rmax, color='black', fill=False, linewidth=1)
     ax1.add_patch(circle)
-    art3d.pathpatch_2d_to_3d(circle, z=V0, zdir="z")
-    ax1.plot_surface(X, Y, Z, cmap='coolwarm',norm=norm1)  # 更改 colormap
-    ax1.view_init(elev=37, azim=41)  # 仰角 37 度，方位角 41 度
-    ax1.set_zlim(-1, 1)
+
+    # 设置坐标轴标签
     ax1.set_xlabel('X')
     ax1.set_ylabel('Y')
-    ax1.set_title("默认视角")
+    ax1.set_title("波函数模方（概率密度）分布")
+    #cb1=plt.colorbar(im,ax=ax1)
 
     # 俯视
     ax2 = fig.add_subplot(gs[1], projection='3d')  # 位于第二行第二列
@@ -229,23 +257,33 @@ def polar_plot(V0,ratio,a,m):
     ax2.set_zlim(-1, 1)
     ax2.set_xlabel('X')
     ax2.set_ylabel('Y')
-    ax2.set_xticks([])  # 取消 x 轴刻度
-    ax2.set_yticks([])  # 取消 y 轴刻度
+    #ax2.set_xticks([])  # 取消 x 轴刻度
+    #ax2.set_yticks([])  # 取消 y 轴刻度
     ax2.set_zticks([])  # 取消 z 轴刻度
     ax2.set_title("俯视")
 
     plt.tight_layout()  # 调整子图布局
-    plt.title('极坐标系下波函数幅值分布')
+    plt.title('波函数幅值分布')
     return fig
 
 def cylind_color(ratio,a,z,x,y,V0,m):
     r = sqrt(x**2+y**2)
     if x > 0:
-        fai = arctan(y/x)
+        if y >= 0:
+            fai = arctan(y/x)
+        else:
+            fai = arctan(y/x)
     elif x<0:
-        fai = arctan(y/x)
+        if y >= 0:
+            fai = arctan(y/x)+pi
+        else:
+            fai = arctan(y/x)+pi
     else:
-        fai = pi/2
+        for j in range(len(y)):
+            if y[j] >= 0:
+                fai = pi/2
+            else:
+                fai = -pi/2
     psai1, psai2 = cylindrical(ratio,a,z,r,fai,V0,m)
     Normpsai = (abs(psai1+psai2))**2
     return Normpsai
@@ -256,9 +294,9 @@ def cylind_plot(V0,ratio,a,h,m):
 
     rmax = a
     zmax = h
-    XX = np.linspace(-rmax-dc,rmax+dc,20)
-    YY = np.linspace(-rmax-dc,rmax+dc,20)
-    ZZ = np.linspace(-zmax-dc,zmax+dc,20)
+    XX = np.linspace(-rmax-dc,rmax+dc,12)
+    YY = np.linspace(-rmax-dc,rmax+dc,12)
+    ZZ = np.linspace(-zmax-dc,zmax+dc,12)
     x,y,z = list(XX),list(YY),list(ZZ)
 
     fig = plt.figure(figsize=(12, 8))  # 设置图形大小
@@ -324,13 +362,16 @@ def spher_color(ratio,a,z,x,y,V0,l,m):
     if x> 0:
         fai = arctan(y/x)
     elif x<0:
-        fai = arctan(y/x)
+        fai = arctan(y/x) + pi
     else:
-        fai = pi/2
-    if x==0 and y==0:
+            if y >= 0:
+                fai = pi/2
+            else:
+                fai = -pi/2
+    if z == 0:
         theta = pi/2
     else:
-        theta = arctan(z/sqrt(x**2+y**2))
+        theta = arctan(sqrt(x**2+y**2)/z)
     psai = spherical(ratio,a,r,theta,fai,V0,l,m)
     normpsai = (abs(psai))**2
     return normpsai
@@ -339,9 +380,9 @@ def spher_plot(V0,ratio,a,m,l):
     #V0, ratio, a, m, l =1,0.2,0.2,1,1
     V0, ratio, a, m, l =float(V0), float(ratio), float(a), float(m), float(l)
     rmax = a
-    XX = np.linspace(-rmax-dc,rmax+dc,15)
-    YY = np.linspace(-rmax-dc,rmax+dc,15)
-    ZZ = np.linspace(-rmax-dc,rmax+dc,15)
+    XX = np.linspace(-rmax-dc,rmax+dc,12)
+    YY = np.linspace(-rmax-dc,rmax+dc,12)
+    ZZ = np.linspace(-rmax-dc,rmax+dc,12)
     x,y,z = list(XX),list(YY),list(ZZ)
 
     fig = plt.figure(figsize=(12,8))
