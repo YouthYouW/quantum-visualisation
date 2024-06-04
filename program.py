@@ -15,7 +15,7 @@ import os
 from PIL import Image, ImageTk
 #Create main window
 root = tk.Tk()
-root.geometry('1500x500+900+50')
+root.geometry('1500x800+900+50')
 root.title('势垒贯穿和隧道效应')
 
 #Defining of Functions

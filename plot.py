@@ -12,8 +12,8 @@ k0 = 50
 dc = 0.3
 def cartesian(ratio,a,x,V0):
     xmin, xmax = 0, a
-    x1 = np.linspace(-dc-xmin,xmin,1000)
-    x2 = np.linspace(xmin,xmax,1000)
+    x1 = np.linspace(-dc-xmin,xmin,100)
+    x2 = np.linspace(xmin,xmax,100)
     j=1j
     if ratio == 1:
         k1 = k0*sqrt(V0)
@@ -76,7 +76,6 @@ def cylindrical(ratio,a,h,r,fai,V0,m):
     p1, p2 = psair*psaiz1, psair*psaiz2
     
     return p1, p2
-
 
 def spherical(ratio,a,r,theta,fai,V0,l,m):
     rmax = a
@@ -266,26 +265,35 @@ def polar_plot(V0,ratio,a,m):
     plt.title('波函数幅值分布')
     return fig
 
-def cylind_color(ratio,a,z,x,y,V0,m):
-    r = sqrt(x**2+y**2)
+def cylind_color(ratio, a, z, x, y, V0, m, slice_axis=None, slice_value=None):
+    r = sqrt(x**2 + y**2)
     if x > 0:
         if y >= 0:
-            fai = arctan(y/x)
+            fai = arctan(y / x)
         else:
-            fai = arctan(y/x)
-    elif x<0:
+            fai = arctan(y / x)
+    elif x < 0:
         if y >= 0:
-            fai = arctan(y/x)+pi
+            fai = arctan(y / x) + pi
         else:
-            fai = arctan(y/x)+pi
+            fai = arctan(y / x) + pi
     else:
         for j in range(len(y)):
             if y[j] >= 0:
-                fai = pi/2
+                fai = pi / 2
             else:
-                fai = -pi/2
-    psai1, psai2 = cylindrical(ratio,a,z,r,fai,V0,m)
-    Normpsai = (abs(psai1+psai2))**2
+                fai = -pi / 2
+    psai1, psai2 = cylindrical(ratio, a, z, r, fai, V0, m)
+    Normpsai = (abs(psai1 + psai2))**2
+
+    # 检查是否需要切片
+    if slice_axis == "z" and slice_value is not None:
+        if abs(z - slice_value) > 1e-6:  # 避免浮点数精度问题
+            return np.nan  # 返回 NaN 表示不绘制该点
+    elif slice_axis == "y" and slice_value is not None:
+        if abs(y - slice_value) > 1e-6:
+            return np.nan
+
     return Normpsai
 
 def cylind_plot(V0,ratio,a,h,m):
@@ -294,13 +302,14 @@ def cylind_plot(V0,ratio,a,h,m):
 
     rmax = a
     zmax = h
-    XX = np.linspace(-rmax-dc,rmax+dc,12)
-    YY = np.linspace(-rmax-dc,rmax+dc,12)
-    ZZ = np.linspace(-zmax-dc,zmax+dc,12)
+    XX = np.linspace(-rmax-dc,rmax+dc,14)
+    YY = np.linspace(-rmax-dc,rmax+dc,14)
+    ZZ = np.linspace(-zmax-dc,zmax+dc,14)
     x,y,z = list(XX),list(YY),list(ZZ)
 
     fig = plt.figure(figsize=(12, 8))  # 设置图形大小
-    ax = fig.add_subplot(111, projection='3d')
+    gs = fig.add_gridspec(2, 2, height_ratios=[1, 1], width_ratios=[1, 1], hspace=0.3)
+    ax = fig.add_subplot(gs[0, :], projection='3d')
     plt.rcParams['figure.figsize'] = (8.0,6.0)
     plt.rcParams['font.sans-serif'] = ['SimHei']
     plt.rcParams['axes.unicode_minus'] = False
@@ -328,10 +337,10 @@ def cylind_plot(V0,ratio,a,h,m):
 
     # 绘制圆柱
     u = np.linspace(0, 2 * np.pi, 50)
-    h = np.linspace(0, zmax, 20)
-    xp = np.outer(rmax * np.cos(u), np.ones(len(h)))
-    yp = np.outer(rmax * np.sin(u), np.ones(len(h)))
-    zp = np.outer(np.ones(len(u)), h)
+    hs = np.linspace(0, zmax, 20)
+    xp = np.outer(rmax * np.cos(u), np.ones(len(hs)))
+    yp = np.outer(rmax * np.sin(u), np.ones(len(hs)))
+    zp = np.outer(np.ones(len(u)), hs)
     ax.plot_surface(xp, yp, zp, color='black', alpha=0.2)
 
     # 给圆柱加个‘盖子’
@@ -343,6 +352,33 @@ def cylind_plot(V0,ratio,a,h,m):
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
+    ax.set_title('柱坐标系下波函数模方分布')
+
+     # 俯视图 (z = h/2 切片)
+    z_slice_value = zmax / 2
+    ax2 = fig.add_subplot(gs[1, 0])  # 位于第二行第一列
+    for i in x:
+        for j in y:
+            color_value = cylind_color(ratio, a, z_slice_value, i, j, V0, m, slice_axis="z", slice_value=z_slice_value)
+            ax2.scatter(i, j, c=color_value, cmap='coolwarm', norm=norm1, alpha=alpha)
+    circle2 = Circle((0, 0), rmax, color='black', fill=False, linewidth=1)
+    ax2.add_patch(circle2)
+    ax2.set_xlabel('X')
+    ax2.set_ylabel('Y')
+    ax2.set_title(f"Z = {z_slice_value:.2f} 切片")
+
+    # 正视图 (y = 0 切片)
+    y_slice_value = 0
+    ax3 = fig.add_subplot(gs[1, 1])  # 位于第二行第二列
+    for i in x:
+        for k in z:
+            color_value = cylind_color(ratio, a, k, i, y_slice_value, V0, m, slice_axis="y", slice_value=y_slice_value)
+            ax3.scatter(i, k, c=color_value, cmap='viridis', norm=norm2, alpha=alpha)
+    rect = plt.Rectangle((-rmax, 0), 2 * rmax, zmax, color='black', fill=False, linewidth=1)
+    ax3.add_patch(rect)
+    ax3.set_xlabel('X')
+    ax3.set_ylabel('Z')
+    ax3.set_title(f"Y = {y_slice_value:.2f} 切片")
 
     # 添加颜色条
     m1 = plt.cm.ScalarMappable(norm=norm1, cmap='coolwarm')
@@ -353,40 +389,50 @@ def cylind_plot(V0,ratio,a,h,m):
     cb2 = plt.colorbar(m2, ax=ax, shrink=0.5, pad=0.1, location="right")  # 添加第二个颜色条
     cb2.set_ticks([vmid, max(values)])  # 设置刻度
     cb2.set_ticklabels([str(vmid/(max(values)+min(values))), '1'])  # 设置刻度标签
-    plt.title('柱坐标系下波函数模方分布')
+    
 
     return fig
 
-def spher_color(ratio,a,z,x,y,V0,l,m):
-    r = sqrt(x**2+y**2+z**2)
-    if x> 0:
-        fai = arctan(y/x)
-    elif x<0:
-        fai = arctan(y/x) + pi
+def spher_color(ratio, a, z, x, y, V0, l, m, slice_axis=None, slice_value=None):
+    r = sqrt(x**2 + y**2 + z**2)
+    if x > 0:
+        fai = arctan(y / x)
+    elif x < 0:
+        fai = arctan(y / x) + pi
     else:
-            if y >= 0:
-                fai = pi/2
-            else:
-                fai = -pi/2
+        if y >= 0:
+            fai = pi / 2
+        else:
+            fai = -pi / 2
     if z == 0:
-        theta = pi/2
+        theta = pi / 2
     else:
-        theta = arctan(sqrt(x**2+y**2)/z)
-    psai = spherical(ratio,a,r,theta,fai,V0,l,m)
+        theta = arctan(sqrt(x**2 + y**2) / z)
+    psai = spherical(ratio, a, r, theta, fai, V0, l, m)
     normpsai = (abs(psai))**2
+
+    # 检查是否需要切片
+    if slice_axis == "z" and slice_value is not None:
+        if abs(z - slice_value) > 1e-6:  # 避免浮点数精度问题
+            return np.nan  # 返回 NaN 表示不绘制该点
+    elif slice_axis == "y" and slice_value is not None:
+        if abs(y - slice_value) > 1e-6:
+            return np.nan
+
     return normpsai
 
 def spher_plot(V0,ratio,a,m,l):
     #V0, ratio, a, m, l =1,0.2,0.2,1,1
     V0, ratio, a, m, l =float(V0), float(ratio), float(a), float(m), float(l)
     rmax = a
-    XX = np.linspace(-rmax-dc,rmax+dc,12)
-    YY = np.linspace(-rmax-dc,rmax+dc,12)
-    ZZ = np.linspace(-rmax-dc,rmax+dc,12)
+    XX = np.linspace(-rmax-dc,rmax+dc,14)
+    YY = np.linspace(-rmax-dc,rmax+dc,14)
+    ZZ = np.linspace(-rmax-dc,rmax+dc,14)
     x,y,z = list(XX),list(YY),list(ZZ)
 
     fig = plt.figure(figsize=(12,8))
-    ax = fig.add_subplot(111,projection='3d')
+    gs = fig.add_gridspec(2, 2, height_ratios=[1, 1], width_ratios=[1, 1], hspace=0.3)
+    ax = fig.add_subplot(gs[0, :], projection='3d')
     plt.rcParams['figure.figsize'] = (8.0,6.0)
     plt.rcParams['font.sans-serif'] = ['SimHei']
     plt.rcParams['axes.unicode_minus'] = False
@@ -418,15 +464,49 @@ def spher_plot(V0,ratio,a,m,l):
     #绘制球体
     u = np.linspace(0, 2 * np.pi, 50)
     v = np.linspace(0, np.pi, 50)
-    x = rmax * np.outer(np.cos(u), np.sin(v))
-    y = rmax * np.outer(np.sin(u), np.sin(v))
-    z = rmax * np.outer(np.ones(np.size(u)), np.cos(v))
-    ax.plot_surface(x, y, z, color='black', alpha=0.1)
+    xs = rmax * np.outer(np.cos(u), np.sin(v))
+    ys = rmax * np.outer(np.sin(u), np.sin(v))
+    zs = rmax * np.outer(np.ones(np.size(u)), np.cos(v))
+    ax.plot_surface(xs, ys, zs, color='black', alpha=0.1)
 
     #设置坐标轴标签
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
+    ax.set_title('球坐标系下波函数模方分布')
+
+    # 俯视图 (z = 0 切片)
+    z_slice_value = 0
+    ax2 = fig.add_subplot(gs[1, 0])  # 位于第二行第一列
+    for i in x:
+        for j in y:
+            color_value = spher_color(ratio, a, z_slice_value, i, j, V0, l, m)
+            if color_value <= vmid:
+                ax2.scatter(i, j, c=color_value, cmap='coolwarm', norm=norm1, alpha=alpha)
+            else:
+                ax2.scatter(i, j, c=color_value, cmap='viridis', norm=norm2, alpha=alpha)
+    circle2 = Circle((0, 0), rmax, color='black', fill=False, linewidth=1)
+    ax2.add_patch(circle2)
+    ax2.set_xlabel('X')
+    ax2.set_ylabel('Y')
+    ax2.set_title(f"Z = {z_slice_value:.2f} 切片")
+
+    # 正视图 (y = 0 切片)
+    y_slice_value = 0
+    ax3 = fig.add_subplot(gs[1, 1])  # 位于第二行第二列
+    for i in x:
+        for k in z:
+            color_value = spher_color(ratio, a, k, i, y_slice_value, V0, l, m)
+            if color_value <= vmid:
+                ax3.scatter(i, k, c=color_value, cmap='coolwarm', norm=norm1, alpha=alpha)
+            else:
+                ax3.scatter(i, k, c=color_value, cmap='viridis', norm=norm2, alpha=alpha)
+    circle3 = Circle((0, 0), rmax, color='black', fill=False, linewidth=1)
+    ax3.add_patch(circle3)
+    ax3.set_xlabel('X')
+    ax3.set_ylabel('Z')
+    ax3.set_title(f"Y = {y_slice_value:.2f} 切片")
+
 
     m1 = plt.cm.ScalarMappable(norm=norm1, cmap='coolwarm')  # 使用 coolwarm colormap
     cb1 = plt.colorbar(m1, ax=ax, shrink=0.5, pad=0.1, location="left")  # 添加第一个颜色条
@@ -437,7 +517,7 @@ def spher_plot(V0,ratio,a,m,l):
     cb2 = plt.colorbar(m2, ax=ax, shrink=0.5, pad=0.1, location="right")  # 添加第二个颜色条
     cb2.set_ticks([vmid,max(values)])
     cb2.set_ticklabels([str(vmid/(max(values)+min(values))),'1'])
-    plt.title('球坐标系下波函数模方分布')
+    
     return fig
 
 def multicar_plot(V,ratio,a):
